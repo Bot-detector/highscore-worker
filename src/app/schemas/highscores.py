@@ -1,7 +1,7 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
 
 
 class playerHiscoreData(BaseModel):
@@ -108,14 +108,15 @@ class playerHiscoreData(BaseModel):
     vardorvis: int = 0
 
 
+# this does not make much sense to me
 class ScraperDataBase(BaseModel):
     player_id: int
 
-
+# this does not make much sense to me
 class ScraperDataCreate(ScraperDataBase):
     pass
 
-
+# this does not make much sense to me
 class ScraperData(ScraperDataBase):
     scraper_id: int
     created_at: Optional[str] = None

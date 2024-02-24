@@ -6,13 +6,14 @@ import traceback
 from asyncio import Queue
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
-from sqlalchemy import select
+from app.schemas.highscores import (
+    PlayerActivityCreate,
+    PlayerCreate,
+    PlayerSkillCreate,
+    ScraperDataCreate,
+)
 from app.schemas.highscores import (
     playerHiscoreData as playerHiscoreDataSchema,
-    PlayerActivityCreate,
-    ScraperDataCreate,
-    PlayerSkillCreate,
-    PlayerCreate,
 )
 from core.config import settings
 from database.database import get_session
@@ -23,12 +24,11 @@ from database.models.highscores import (
     ScraperData,
 )
 from database.models.player import Player
-from sqlalchemy import insert, update
+from pydantic import BaseModel
+from sqlalchemy import insert, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import Insert, Update
-
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
@@ -114,8 +114,18 @@ def log_speed(
 
 
 async def insert_data(batch: list[Message], error_queue: Queue):
+    """
+    1. check for duplicates in scraper_data[player_id, record_date], remove all duplicates
+    2. start transaction
+    3. for each player insert into scraper_data
+    4. for each player get the scraper_id from scraper_data
+    5. insert into player_skills (scraper_id, skill_id) values (), ()
+    6. insert into player_activities (scraper_id, activity_id) values (), ()
+    
+    step 5 & 6 must be batched for all players at once
+    """
     session: AsyncSession = await get_session()
-
+    logger.debug(batch[:1])
     try:
         # Transform the old data format into the new format
         batch = [await transform_data(msg, session) for msg in batch]
