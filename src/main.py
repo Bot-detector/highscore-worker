@@ -93,7 +93,7 @@ async def insert_data_v2(batch: list[Message], error_queue: Queue):
         players = [
             msg.player
             for msg in batch
-            if msg.player and not msg.player.name.lower().startswith("anonymoususer ")
+            if msg.player and not msg.player.name.lower().startswith("anonymoususer")
         ]
 
         logger.info(f"Received: {len(players)=}, {len(highscores)=}")
