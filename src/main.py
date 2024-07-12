@@ -91,7 +91,7 @@ async def insert_data_v2(batch: list[Message], error_queue: Queue):
     try:
         highscores = [msg.hiscores for msg in batch if msg.hiscores]
         players = [
-            msg.player for msg in batch if msg.player and len(msg.player.name) > 13
+            msg.player for msg in batch if msg.player and len(msg.player.name) < 13
         ]
 
         logger.info(f"Received: {len(players)=}, {len(highscores)=}")
