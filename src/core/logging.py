@@ -31,11 +31,12 @@ handlers = [h for h in handlers if h is not None]
 logging.basicConfig(level=logging.DEBUG, handlers=handlers)
 
 # set imported loggers to warning
-logging.getLogger("aiomysql").setLevel(logging.ERROR)
-logging.getLogger("asyncmy").setLevel(logging.ERROR)
-logging.getLogger("aiokafka").setLevel(logging.WARNING)
+# logging.getLogger("aiomysql").setLevel(logging.ERROR)
+# logging.getLogger("asyncmy").setLevel(logging.ERROR)
+# logging.getLogger("aiokafka").setLevel(logging.WARNING)
+# logging.getLogger("AioKafkaEngine").setLevel(logging.INFO)
 
-# # https://github.com/aio-libs/aiomysql/issues/103
-# # https://github.com/coleifer/peewee/issues/2229
-warnings.filterwarnings("ignore", ".*Duplicate entry.*")
-warnings.filterwarnings('ignore', module=r"aiomysql")
+# # # https://github.com/aio-libs/aiomysql/issues/103
+# # # https://github.com/coleifer/peewee/issues/2229
+# warnings.filterwarnings("ignore", ".*Duplicate entry.*")
+# warnings.filterwarnings("ignore", module=r"aiomysql")

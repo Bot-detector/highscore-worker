@@ -5,7 +5,8 @@ import traceback
 from asyncio import Queue
 from functools import wraps
 
-import my_kafka as my_kafka
+import _kafka as _kafka
+from _kafka import consumer, producer
 from app.repositories.activities import ActivitiesRepo
 
 # schemas import
@@ -23,46 +24,6 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 logger = logging.getLogger(__name__)
 
 
-def async_timeit(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = await func(*args, **kwargs)
-        end_time = time.time()
-        logger.debug(
-            f"Execution time for {func.__name__}: {end_time - start_time} seconds"
-        )
-        return result
-
-    return wrapper
-
-
-def log_speed(
-    counter: int, start_time: float, _queue: Queue, topic: str, interval: int = 15
-) -> tuple[float, int]:
-    # Calculate the time elapsed since the function started
-    delta_time = time.time() - start_time
-
-    # Check if the specified interval has not elapsed yet
-    if delta_time < interval:
-        # Return the original start time and the current counter value
-        return start_time, counter
-
-    # Calculate the processing speed (messages per second)
-    speed = counter / delta_time
-
-    # Log the processing speed and relevant information
-    log_message = (
-        f"{topic=}, qsize={_queue.qsize()}, "
-        f"processed {counter} in {delta_time:.2f} seconds, {speed:.2f} msg/sec"
-    )
-    logger.info(log_message)
-
-    # Return the current time and reset the counter to zero
-    return time.time(), 0
-
-
-@async_timeit
 async def insert_data_v1(batch: list[Message], error_queue: Queue):
     try:
         highscores = [msg.hiscores for msg in batch if msg.hiscores]
@@ -87,7 +48,6 @@ async def insert_data_v1(batch: list[Message], error_queue: Queue):
         logger.info(f"error_qsize={error_queue.qsize()}, {message=}")
 
 
-@async_timeit
 async def insert_data_v2(batch: list[Message], error_queue: Queue):
     try:
         highscores = [msg.hiscores for msg in batch if msg.hiscores]
@@ -156,7 +116,6 @@ async def insert_data_v2(batch: list[Message], error_queue: Queue):
 
 async def process_data(receive_queue: Queue, error_queue: Queue):
     # Initialize counter and start time
-    counter = 0
     start_time = time.time()
     max_insert_wait = 60  # seconds
     max_batch_size = 1_000
@@ -167,14 +126,6 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
     batch = []
     # Run indefinitely
     while True:
-        start_time, counter = log_speed(
-            counter=counter,
-            start_time=start_time,
-            _queue=receive_queue,
-            topic="scraper",
-            interval=15,
-        )
-
         # Check if queue is empty
         if receive_queue.empty():
             await asyncio.sleep(1)
@@ -187,8 +138,7 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
         # TODO fix test data
         if settings.ENV != "PRD":
             player_id = message.player.id
-            MIN_PLAYER_ID = 0
-            MAX_PLAYER_ID = 300
+            MIN_PLAYER_ID, MAX_PLAYER_ID = 0, 300
             if not (MIN_PLAYER_ID < player_id <= MAX_PLAYER_ID):
                 continue
 
@@ -199,6 +149,8 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
 
         # insert data in batches of N or interval of N
         if len(batch) > max_batch_size or now - start_time > max_insert_wait:
+            print(len(batch))
+            start_time = time.time()
             async with semaphore:
                 # await insert_data_v1(batch=batch, error_queue=error_queue)
                 # await insert_data_v2(batch=batch, error_queue=error_queue)
@@ -206,27 +158,15 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
             batch = []
 
         receive_queue.task_done()
-        counter += 1
 
 
 async def main():
-    # get kafka engine
-    consumer = await my_kafka.kafka_consumer(topic="scraper", group="highscore-worker")
-    producer = await my_kafka.kafka_producer()
+    receive_queue = consumer.receive_queue
+    send_queue = producer.send_queue
 
-    receive_queue = Queue(maxsize=100)
-    send_queue = Queue(maxsize=100)
+    await consumer.start_engine(topics=["scraper"])
+    await producer.start_engine(topic="scraper")
 
-    asyncio.create_task(
-        my_kafka.receive_messages(
-            consumer=consumer, receive_queue=receive_queue, error_queue=send_queue
-        )
-    )
-    asyncio.create_task(
-        my_kafka.send_messages(
-            topic="scraper", producer=producer, send_queue=send_queue
-        )
-    )
     asyncio.create_task(
         process_data(receive_queue=receive_queue, error_queue=send_queue)
     )
