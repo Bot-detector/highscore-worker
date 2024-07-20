@@ -19,6 +19,8 @@ from app.schemas.scraper_data import ScraperCreate
 from core.config import settings
 from sqlalchemy.exc import IntegrityError, OperationalError
 
+from .bulk_normalization import insert_data_v3
+
 logger = logging.getLogger(__name__)
 
 
@@ -198,7 +200,8 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
         if len(batch) > 100 or now - start_time > 15:
             async with semaphore:
                 # await insert_data_v1(batch=batch, error_queue=error_queue)
-                await insert_data_v2(batch=batch, error_queue=error_queue)
+                # await insert_data_v2(batch=batch, error_queue=error_queue)
+                await insert_data_v3(batch=batch, error_queue=error_queue)
             batch = []
 
         receive_queue.task_done()

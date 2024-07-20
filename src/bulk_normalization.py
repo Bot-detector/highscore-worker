@@ -8,8 +8,9 @@ from datetime import date, datetime
 import sqlalchemy as sqla
 from app.schemas.input.highscore import PlayerHiscoreData
 from app.schemas.input.message import Message
-from app.schemas.input.player import Player
 from database.database import SessionFactory
+from database.models.player import Player as PlayerDB
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -348,11 +349,20 @@ async def insert_data_v3(batch: list[Message], error_queue: Queue):
         logger.info(f"Received: {len(players)=}, {len(highscores)=}")
         async with await get_session() as session:
             session: AsyncSession  # Type annotation for clarity
+            # insert highscore data
             await bulk_normalized_insert(
                 session=session,
                 skills=skills,
                 activities=activities,
             )
+            # update player
+            for player in players:
+                await session.execute(
+                    update(PlayerDB)
+                    .values(player.model_dump())
+                    .where(PlayerDB.id == player.id)
+                )
+            await session.commit()
     except (OperationalError, IntegrityError) as e:
         for message in batch:
             await error_queue.put(message)
