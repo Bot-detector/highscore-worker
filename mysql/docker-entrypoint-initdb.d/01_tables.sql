@@ -16,9 +16,9 @@ CREATE TABLE Players (
     normalized_name TEXT
 );
 
--------------------------------------------------
+/*
 -- V1
--------------------------------------------------
+*/
 
 CREATE TABLE playerHiscoreData (
   id int NOT NULL AUTO_INCREMENT,
@@ -127,9 +127,9 @@ CREATE TABLE playerHiscoreData (
 );
 CREATE TRIGGER hiscore_date_OnInsert BEFORE INSERT ON playerHiscoreData FOR EACH ROW SET new.ts_date = DATE(new.timestamp);
 
--------------------------------------------------
+/*
 -- V2
--------------------------------------------------
+*/
 CREATE TABLE scraper_data (
   scraper_id bigint unsigned NOT NULL AUTO_INCREMENT,
   created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -180,9 +180,9 @@ CREATE TABLE player_activities (
   FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE CASCADE,
   PRIMARY KEY (scraper_id, activity_id)
 );
--------------------------------------------------
+/*
 -- V3
--------------------------------------------------
+*/
 CREATE TABLE skill (
     skill_id tinyint unsigned NOT NULL AUTO_INCREMENT,
     skill_name varchar(50) NOT NULL,
@@ -213,7 +213,7 @@ CREATE TABLE player_activity (
     UNIQUE KEY unique_activity_value (activity_id, activity_value)
 );
 
-CREATE TABLE scraper_data_v2 (
+CREATE TABLE scraper_data_v3 (
     scrape_id bigint unsigned NOT NULL AUTO_INCREMENT,
     scrape_ts DATETIME NOT NULL,
     scrape_date DATE NOT NULL,

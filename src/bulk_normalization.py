@@ -51,7 +51,7 @@ async def get_session():
     return SessionFactory()
 
 
-def bulk_normalized_insert(
+async def bulk_normalized_insert(
     session: Session,
     skills: list[ScraperPlayerSkill],
     activities: list[ScraperPlayerActivity],
@@ -108,14 +108,14 @@ def bulk_normalized_insert(
     """
 
     sql_insert_sc_data = """
-        INSERT IGNORE INTO scraper_data (scrape_ts, scrape_date, player_id)
+        INSERT IGNORE INTO scraper_data_v3 (scrape_ts, scrape_date, player_id)
         select DISTINCT scrape_ts, scrape_date, player_id from (
             SELECT scrape_ts, scrape_date, player_id FROM temp_skill ts
             UNION
             SELECT scrape_ts, scrape_date, player_id FROM temp_activity ta
         ) tp
         WHERE NOT EXISTS (
-            SELECT 1 FROM scraper_data sd
+            SELECT 1 FROM scraper_data_v3 sd
             WHERE 1
                 AND tp.scrape_date = sd.scrape_date
                 AND tp.player_id = sd.player_id
@@ -127,7 +127,7 @@ def bulk_normalized_insert(
     sql_insert_sc_pl_skill = """
         INSERT IGNORE INTO scraper_player_skill (scrape_id, player_skill_id)
         SELECT sd.scrape_id, ps.player_skill_id FROM temp_skill tp
-        join scraper_data sd ON (
+        join scraper_data_v3 sd ON (
             tp.scrape_date = sd.scrape_date AND 
             tp.player_id = sd.player_id
         )
@@ -145,7 +145,7 @@ def bulk_normalized_insert(
     sql_insert_sc_pl_activity = """
         INSERT IGNORE INTO scraper_player_activity (scrape_id, player_activity_id)
         SELECT sd.scrape_id, pa.player_activity_id FROM temp_activity tp
-        join scraper_data sd ON (
+        join scraper_data_v3 sd ON (
             tp.scrape_date = sd.scrape_date AND 
             tp.player_id = sd.player_id
         )
@@ -161,11 +161,11 @@ def bulk_normalized_insert(
         );
     """
     # cleanup
-    session.execute(sqla.text("DROP TABLE IF EXISTS temp_skill"))
-    session.execute(sqla.text("DROP TABLE IF EXISTS temp_activity"))
+    await session.execute(sqla.text("DROP TABLE IF EXISTS temp_skill"))
+    await session.execute(sqla.text("DROP TABLE IF EXISTS temp_activity"))
     # create temp (staging) tables
-    session.execute(sqla.text(sql_create_temp_skills))
-    session.execute(sqla.text(sql_create_temp_activities))
+    await session.execute(sqla.text(sql_create_temp_skills))
+    await session.execute(sqla.text(sql_create_temp_activities))
 
     # parse data into dict
     _skills = [asdict(s) for s in skills]
@@ -173,21 +173,21 @@ def bulk_normalized_insert(
 
     # insert into temp (staging) tables
     if len(_skills) > 0:
-        session.execute(sqla.text(sql_insert_temp_skills), params=_skills)
+        await session.execute(sqla.text(sql_insert_temp_skills), params=_skills)
     if len(_activities) > 0:
-        session.execute(sqla.text(sql_insert_temp_activities), params=_activities)
+        await session.execute(sqla.text(sql_insert_temp_activities), params=_activities)
 
     # insert data into normalized table
-    session.execute(sqla.text(sql_insert_sc_data))
-    session.execute(sqla.text(sql_insert_pl_skill))
-    session.execute(sqla.text(sql_insert_pl_activity))
+    await session.execute(sqla.text(sql_insert_sc_data))
+    await session.execute(sqla.text(sql_insert_pl_skill))
+    await session.execute(sqla.text(sql_insert_pl_activity))
 
     # insert data into linking table
-    session.execute(sqla.text(sql_insert_sc_pl_skill))
-    session.execute(sqla.text(sql_insert_sc_pl_activity))
+    await session.execute(sqla.text(sql_insert_sc_pl_skill))
+    await session.execute(sqla.text(sql_insert_sc_pl_activity))
     # cleanup
-    session.execute(sqla.text("DROP TABLE IF EXISTS temp_skill"))
-    session.execute(sqla.text("DROP TABLE IF EXISTS temp_activity"))
+    await session.execute(sqla.text("DROP TABLE IF EXISTS temp_skill"))
+    await session.execute(sqla.text("DROP TABLE IF EXISTS temp_activity"))
 
 
 skill_map = {
@@ -300,6 +300,8 @@ def parse_hiscore_records(
     # iterate over batch records
     for record in records:
         for key, value in record.model_dump().items():
+            if key in ["total", "Player_id", "timestamp"]:
+                continue
             skill_id = skill_map.get(key)
             activity_id = activity_map.get(key)
 
@@ -346,7 +348,9 @@ async def insert_data_v3(batch: list[Message], error_queue: Queue):
         ]
 
         skills, activities = parse_hiscore_records(highscores)
-        logger.info(f"Received: {len(players)=}, {len(highscores)=}")
+        logger.info(
+            f"Received: {len(players)=}, {len(highscores)=}, {len(skills)=}, {len(activities)=}"
+        )
         async with await get_session() as session:
             session: AsyncSession  # Type annotation for clarity
             # insert highscore data

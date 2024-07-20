@@ -16,10 +16,9 @@ from app.schemas.input.activities import Activities, PlayerActivities
 from app.schemas.input.message import Message
 from app.schemas.input.skills import PlayerSkills, Skills
 from app.schemas.scraper_data import ScraperCreate
+from bulk_normalization import insert_data_v3
 from core.config import settings
 from sqlalchemy.exc import IntegrityError, OperationalError
-
-from .bulk_normalization import insert_data_v3
 
 logger = logging.getLogger(__name__)
 
