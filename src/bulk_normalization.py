@@ -17,6 +17,9 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
+skill_map = {}
+activity_map = {}
+
 
 @dataclass
 class ScraperPlayerSkill:
@@ -190,110 +193,39 @@ async def bulk_normalized_insert(
     await session.execute(sqla.text("DROP TABLE IF EXISTS temp_activity"))
 
 
-skill_map = {
-    "attack": 1,
-    "defence": 2,
-    "strength": 3,
-    "hitpoints": 4,
-    "ranged": 5,
-    "prayer": 6,
-    "magic": 7,
-    "cooking": 8,
-    "woodcutting": 9,
-    "fletching": 10,
-    "fishing": 11,
-    "firemaking": 12,
-    "crafting": 13,
-    "smithing": 14,
-    "mining": 15,
-    "herblore": 16,
-    "agility": 17,
-    "thieving": 18,
-    "slayer": 19,
-    "farming": 20,
-    "runecraft": 21,
-    "hunter": 22,
-    "construction": 23,
-}
+async def update_skill_map() -> dict:
+    sql = """
+        SELECT skill_id, skill_name from skill;
+    """
+    async with await get_session() as session:
+        session: AsyncSession
+        result = await session.execute(sqla.text(sql))
+    data = result.mappings().all()
+    data_map = {d["skill_name"]: d["skill_id"] for d in data}
+    return data_map
 
-activity_map = {
-    "league": 1,
-    "bounty_hunter_hunter": 2,
-    "bounty_hunter_rogue": 3,
-    "cs_all": 4,
-    "cs_beginner": 5,
-    "cs_easy": 6,
-    "cs_medium": 7,
-    "cs_hard": 8,
-    "cs_elite": 9,
-    "cs_master": 10,
-    "lms_rank": 11,
-    "soul_wars_zeal": 12,
-    "abyssal_sire": 13,
-    "alchemical_hydra": 14,
-    "barrows_chests": 15,
-    "bryophyta": 16,
-    "callisto": 17,
-    "cerberus": 18,
-    "chambers_of_xeric": 19,
-    "chambers_of_xeric_challenge_mode": 20,
-    "chaos_elemental": 21,
-    "chaos_fanatic": 22,
-    "commander_zilyana": 23,
-    "corporeal_beast": 24,
-    "crazy_archaeologist": 25,
-    "dagannoth_prime": 26,
-    "dagannoth_rex": 27,
-    "dagannoth_supreme": 28,
-    "deranged_archaeologist": 29,
-    "general_graardor": 30,
-    "giant_mole": 31,
-    "grotesque_guardians": 32,
-    "hespori": 33,
-    "kalphite_queen": 34,
-    "king_black_dragon": 35,
-    "kraken": 36,
-    "kreearra": 37,
-    "kril_tsutsaroth": 38,
-    "mimic": 39,
-    "nightmare": 40,
-    "nex": 41,
-    "phosanis_nightmare": 42,
-    "obor": 43,
-    "phantom_muspah": 44,
-    "sarachnis": 45,
-    "scorpia": 46,
-    "skotizo": 47,
-    "tempoross": 48,
-    "the_gauntlet": 49,
-    "the_corrupted_gauntlet": 50,
-    "theatre_of_blood": 51,
-    "theatre_of_blood_hard": 52,
-    "thermonuclear_smoke_devil": 53,
-    "tombs_of_amascut": 54,
-    "tombs_of_amascut_expert": 55,
-    "tzkal_zuk": 56,
-    "tztok_jad": 57,
-    "venenatis": 58,
-    "vetion": 59,
-    "vorkath": 60,
-    "wintertodt": 61,
-    "zalcano": 62,
-    "zulrah": 63,
-    "rifts_closed": 64,
-    "artio": 65,
-    "calvarion": 66,
-    "duke_sucellus": 67,
-    "spindel": 68,
-    "the_leviathan": 69,
-    "the_whisperer": 70,
-    "vardorvis": 71,
-}
+
+async def update_activity_map() -> dict:
+    sql = """
+        SELECT activity_id, activity_name from activity;
+    """
+    async with await get_session() as session:
+        session: AsyncSession
+        result = await session.execute(sqla.text(sql))
+    data = result.mappings().all()
+    data_map = {d["activity_name"]: d["activity_id"] for d in data}
+    return data_map
 
 
 def parse_hiscore_records(
     records: list[PlayerHiscoreData],
 ) -> tuple[list[ScraperPlayerSkill], list[ScraperPlayerActivity]]:
+    global skill_map
+    global activity_map
+
+    assert skill_map != {}
+    assert activity_map != {}
+
     skills = []
     activities = []
 
@@ -341,6 +273,13 @@ def parse_hiscore_records(
 
 
 async def insert_data_v3(batch: list[Message], error_queue: Queue):
+    global skill_map
+    global activity_map
+
+    if skill_map == {}:
+        skill_map = await update_skill_map()
+    if activity_map == {}:
+        activity_map = await update_activity_map()
     try:
         highscores = [msg.hiscores for msg in batch if msg.hiscores]
         players = [

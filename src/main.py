@@ -158,6 +158,8 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
     # Initialize counter and start time
     counter = 0
     start_time = time.time()
+    max_insert_wait = 60  # seconds
+    max_batch_size = 1_000
 
     # limit the number of async insert_data calls
     semaphore = asyncio.Semaphore(5)
@@ -196,7 +198,7 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
         now = time.time()
 
         # insert data in batches of N or interval of N
-        if len(batch) > 100 or now - start_time > 15:
+        if len(batch) > max_batch_size or now - start_time > max_insert_wait:
             async with semaphore:
                 # await insert_data_v1(batch=batch, error_queue=error_queue)
                 # await insert_data_v2(batch=batch, error_queue=error_queue)
