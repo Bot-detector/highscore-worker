@@ -1,6 +1,7 @@
 import json
 import os
 import random
+from datetime import datetime, timedelta
 
 import _kafka_config
 from kafka import KafkaProducer
@@ -133,13 +134,18 @@ def send_data(producer: KafkaProducer):
     for i in range(len_messages):
         player = random.choice(players)
         player_id = int(player.replace("player", ""))
+        timestamp = datetime.now() - timedelta(
+            days=random.randint(0, 360),
+            hours=random.randint(0, 24),
+        )
+        timestamp = timestamp.isoformat()
 
         msg = {
             "player": {
                 "id": player_id,
                 "name": player,
                 "created_at": "2023-06-16T12:17:53",
-                "updated_at": "2024-07-17T03:14:59",
+                "updated_at": timestamp,
                 "possible_ban": 0,
                 "confirmed_ban": 0,
                 "confirmed_player": 0,
@@ -152,7 +158,7 @@ def send_data(producer: KafkaProducer):
                 * random.randint(0, 1000)
                 for k, _ in example_hs.items()
             }
-            | {"Player_id": player_id, "timestamp": "2024-07-17T03:14:59"},
+            | {"Player_id": player_id, "timestamp": timestamp},
         }
         print(i, msg)
         producer.send(topic="scraper", value=msg)
