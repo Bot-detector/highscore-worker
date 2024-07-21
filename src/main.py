@@ -133,7 +133,16 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
 
         # Get a message from the chosen queue
         message = await receive_queue.get()
-        message = Message(**message)
+
+        if not (isinstance(message, dict) or isinstance(message, list)):
+            logger.debug(f"invalid type: {message=}")
+            continue
+
+        try:
+            message = Message(**message)
+        except Exception as e:
+            logger.error(e)
+            continue
 
         # TODO fix test data
         if settings.ENV != "PRD":
