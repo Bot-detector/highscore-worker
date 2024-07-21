@@ -24,21 +24,21 @@ services:
     networks:
       - botdetector-network
 
-  # kafdrop:
-  #   container_name: kafdrop
-  #   image: obsidiandynamics/kafdrop:latest
-  #   environment:
-  #     - KAFKA_BROKERCONNECT=kafka:9092
-  #     - JVM_OPTS=-Xms32M -Xmx64M
-  #     - SERVER_SERVLET_CONTEXTPATH=/
-  #   ports:
-  #     - 9999:9000
-  #   restart: on-failure
-  #   networks:
-  #     - botdetector-network
-  #   depends_on:
-  #     kafka:
-  #       condition: service_healthy
+  kafdrop:
+    container_name: kafdrop
+    image: obsidiandynamics/kafdrop:latest
+    environment:
+      - KAFKA_BROKERCONNECT=kafka:9092
+      - JVM_OPTS=-Xms32M -Xmx64M
+      - SERVER_SERVLET_CONTEXTPATH=/
+    ports:
+      - 9999:9000
+    restart: on-failure
+    networks:
+      - botdetector-network
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   kafka_setup:
     container_name: kafka_setup
@@ -97,7 +97,7 @@ services:
       - DATABASE_URL=mysql+aiomysql://root:root_bot_buster@mysql:3306/playerdata
       - POOL_TIMEOUT=30
       - POOL_RECYCLE=30
-      - ENV=PRD
+      # - ENV=PRD
       # - ENABLE_DEBUGPY=true
       # - PYDEVD_DISABLE_FILE_VALIDATION=1
     networks:
