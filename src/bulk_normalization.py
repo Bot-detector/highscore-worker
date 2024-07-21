@@ -308,6 +308,7 @@ async def insert_data_v3(batch: list[Message], error_queue: Queue):
             await session.commit()
     except (OperationalError, IntegrityError) as e:
         logger.error({"error": e})
+        logger.debug(f"Traceback: \n{traceback.format_exc()}")
         for message in batch:
             await error_queue.put(message.model_dump_json())
 
