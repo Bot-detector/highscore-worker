@@ -5,10 +5,7 @@ import warnings
 
 from core.config import settings
 
-# setup logging
-file_handler = logging.FileHandler(filename="./src/error.log", mode="a")
-stream_handler = logging.StreamHandler(sys.stdout)
-# # log formatting
+# log formatting
 formatter = logging.Formatter(
     json.dumps(
         {
@@ -21,12 +18,19 @@ formatter = logging.Formatter(
     )
 )
 
+handlers = []
 
-file_handler.setFormatter(formatter)
+stream_handler = logging.StreamHandler(sys.stdout)
 stream_handler.setFormatter(formatter)
 
-handlers = [file_handler if settings.ENV != "PRD" else None, stream_handler]
-handlers = [h for h in handlers if h is not None]
+handlers.append(stream_handler)
+
+# in NPRD it easier to have a file to see the logs
+if settings.ENV != "PRD":
+    file_handler = logging.FileHandler(filename="./src/error.log", mode="a")
+    file_handler.setFormatter(formatter)
+    handlers.append(file_handler)
+
 
 logging.basicConfig(level=logging.DEBUG, handlers=handlers)
 
@@ -35,7 +39,7 @@ logging.getLogger("aiomysql").setLevel(logging.ERROR)
 logging.getLogger("asyncmy").setLevel(logging.ERROR)
 logging.getLogger("aiokafka").setLevel(logging.WARNING)
 
-# # # https://github.com/aio-libs/aiomysql/issues/103
-# # # https://github.com/coleifer/peewee/issues/2229
+# https://github.com/aio-libs/aiomysql/issues/103
+# https://github.com/coleifer/peewee/issues/2229
 warnings.filterwarnings("ignore", ".*Duplicate entry.*")
 warnings.filterwarnings("ignore", module=r"aiomysql")
