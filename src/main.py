@@ -149,6 +149,7 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
             player_id = message.player.id
             MIN_PLAYER_ID, MAX_PLAYER_ID = 0, 300
             if not (MIN_PLAYER_ID < player_id <= MAX_PLAYER_ID):
+                logger.warn(f"{settings.ENV}, skipping: {player_id}")
                 continue
 
         # batch message
