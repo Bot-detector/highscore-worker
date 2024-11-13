@@ -240,3 +240,17 @@ CREATE TABLE scraper_player_activity (
     KEY idx_player_activity_id (player_activity_id)
 )
 PARTITION BY HASH (scrape_id) PARTITIONS 10;
+
+/*
+-- V4
+*/
+CREATE TABLE highscore_data (
+    player_id INT NOT NULL,
+    scrape_ts DATETIME NOT NULL,
+    scrape_date DATE NOT NULL,
+    skills JSON, -- NULL means empty dict
+    activities JSON, -- NULL means empty dict
+    PRIMARY KEY (player_id, scrape_date),
+    INDEX idx_scrape_ts (scrape_ts)
+)
+PARTITION BY HASH(player_id) PARTITIONS 10;

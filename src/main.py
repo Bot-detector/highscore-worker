@@ -11,9 +11,10 @@ from app.schemas.input.message import Message
 
 # from bulk_normalization import insert_data_v3
 from core.config import settings
-from insert_data import insert_data_v1
 
+# from insert_data import insert_data_v1
 # from insert_data import insert_data_v2
+from insert_data import insert_data_v4
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,7 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
             player_id = message.player.id
             MIN_PLAYER_ID, MAX_PLAYER_ID = 0, 300
             if not (MIN_PLAYER_ID < player_id <= MAX_PLAYER_ID):
-                logger.warn(f"{settings.ENV}, skipping: {player_id}")
+                logger.warning(f"{settings.ENV}, skipping: {player_id}")
                 continue
 
         # batch message
@@ -65,9 +66,10 @@ async def process_data(receive_queue: Queue, error_queue: Queue):
         if len(batch) > max_batch_size or now - start_time > max_insert_wait:
             start_time = time.time()
             async with semaphore:
-                await insert_data_v1(batch=batch, error_queue=error_queue)
+                # await insert_data_v1(batch=batch, error_queue=error_queue)
                 # await insert_data_v2(batch=batch, error_queue=error_queue)
                 # await insert_data_v3(batch=batch, error_queue=error_queue)
+                await insert_data_v4(batch=batch, error_queue=error_queue)
             batch = []
 
         receive_queue.task_done()
