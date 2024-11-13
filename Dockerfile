@@ -1,29 +1,28 @@
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
-# Keeps Python from generating .pyc files in the container
-ENV PYTHONDONTWRITEBYTECODE=1
-
-# Turns off buffering for easier container logging
-ENV PYTHONUNBUFFERED=1
+# Install uv.
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # set the working directory
 WORKDIR /project
 
 # install dependencies
-COPY ./requirements.txt /project
-RUN pip install --no-cache-dir -r requirements.txt
 
-# # PTVSD is a Python debugger that can be used in a container
-# ARG INSTALL_PTVSD=false
-RUN if [ "$INSTALL_PTVSD" = "true" ] ; then pip install debugpy ; fi
+# COPY ./requirements.txt /project
+# RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./uv.lock /project
+COPY ./pyproject.toml /project
+RUN uv sync --frozen --no-cache
+RUN uv pip compile pyproject.toml -o requirements.txt
 
 # copy the scripts to the folder
 COPY ./src /project/src
 
 # production image
-FROM base as production
+FROM base AS production
 # Creates a non-root user with an explicit UID and adds permission to access the /project folder
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /project
 USER appuser
 
-CMD ["python", "src/main.py"]
+CMD ["uv" "run", "src/main.py"]

@@ -85,21 +85,13 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base
-      args:
-        root_path: /
-        api_port: 5000
     # command: bash -c "apt update && apt install -y curl && sleep infinity"
-    command: python src/main.py
-    # ports:
-    #   - 5678:5678
+    command: uv run src/main.py
     environment:
       - KAFKA_HOST=kafka:9092
       - DATABASE_URL=mysql+aiomysql://root:root_bot_buster@mysql:3306/playerdata
       - POOL_TIMEOUT=30
       - POOL_RECYCLE=30
-      # - ENV=PRD
-      # - ENABLE_DEBUGPY=true
-      # - PYDEVD_DISABLE_FILE_VALIDATION=1
     networks:
       - botdetector-network
     volumes:

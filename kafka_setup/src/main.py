@@ -8,17 +8,17 @@ from kafka import KafkaProducer
 
 
 def send_data(producer: KafkaProducer):
-    example_player = {
-        "id": 0,
-        "name": "",
-        "created_at": "2023-06-16T12:17:53",
-        "updated_at": "2024-07-17T03:14:59",
-        "possible_ban": 0,
-        "confirmed_ban": 0,
-        "confirmed_player": 0,
-        "label_id": 0,
-        "label_jagex": 0,
-    }
+    # example_player = {
+    #     "id": 0,
+    #     "name": "",
+    #     "created_at": "2023-06-16T12:17:53",
+    #     "updated_at": "2024-07-17T03:14:59",
+    #     "possible_ban": 0,
+    #     "confirmed_ban": 0,
+    #     "confirmed_player": 0,
+    #     "label_id": 0,
+    #     "label_jagex": 0,
+    # }
     example_hs = {
         "attack": 0,
         "defence": 289052,
@@ -124,10 +124,10 @@ def send_data(producer: KafkaProducer):
         "zalcano": 0,
         "zulrah": 0,
     }
-    example = {
-        "player": {},
-        "hiscores": {},
-    }
+    # example = {
+    #     "player": {},
+    #     "hiscores": {},
+    # }
 
     len_messages = 100_000
     players = [f"player{i}" for i in range(300)]
